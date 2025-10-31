@@ -1,5 +1,0 @@
-# EAP8이 plain-binaries로 오인해 Binary 모드로 타지 않도록 'Source 빌드' 강제
-S2I_FORCE_SOURCE_BUILD=true
-# (선택) WAR가 위치한 경로를 명시하고 싶다면:
-# S2I_SOURCE_DEPLOYMENTS_DIR=.
-# S2I_SOURCE_DEPLOYMENTS_FILTER=*.war
