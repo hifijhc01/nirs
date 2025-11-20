@@ -1,5 +1,10 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" version="4.0.0">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    
+    <!-- 문법 오류 수정: project 태그 안에 version 속성 제거 -->
     <modelVersion>4.0.0</modelVersion>
+
     <groupId>com.nirs</groupId>
     <artifactId>todo-app</artifactId>
     <version>1.0.0-SNAPSHOT</version>
@@ -9,6 +14,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <failOnMissingWebXml>false</failOnMissingWebXml>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencyManagement>
@@ -25,10 +31,23 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- 버전 누락 수정: version 8.0.0 추가 -->
         <dependency>
             <groupId>jakarta.platform</groupId>
             <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>8.0.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <finalName>todo-app</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.3.2</version>
+            </plugin>
+        </plugins>
+    </build>
 </project>
