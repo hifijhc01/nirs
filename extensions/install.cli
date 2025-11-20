@@ -1,0 +1,25 @@
+batch
+
+# 1. 안전장치: 혹시라도 기존에 같은 이름이 있다면 삭제
+if (outcome == success) of /subsystem=datasources/data-source=TodoDS:read-resource
+    data-source remove --name=TodoDS
+end-if
+
+# 2. Datasource 강제 생성
+# 핵심: --driver-name=postgresql (Galleon이 설치한 드라이버 이름 사용)
+# 환경변수(${env...})를 사용하여 접속 정보를 유연하게 받음
+data-source add \
+    --name=TodoDS \
+    --jndi-name=java:jboss/datasources/TodoDS \
+    --driver-name=postgresql \
+    --connection-url=jdbc:postgresql://${env.POSTGRESQL_SERVICE_HOST:postgresql}:${env.POSTGRESQL_SERVICE_PORT:5432}/${env.POSTGRESQL_DATABASE:tododb} \
+    --user-name=${env.POSTGRESQL_USERNAME:todo} \
+    --password=${env.POSTGRESQL_PASSWORD:password} \
+    --use-java-context=true \
+    --check-valid-connection-sql="SELECT 1" \
+    --background-validation=true \
+    --valid-connection-checker-class-name=org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker \
+    --exception-sorter-class-name=org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter \
+    --enabled=true
+
+run-batch
