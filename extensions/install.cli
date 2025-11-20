@@ -1,0 +1,25 @@
+batch
+
+# 1. 기존에 자동 생성된 TodoDS가 있다면 제거 (충돌 방지)
+if (outcome == success) of /subsystem=datasources/data-source=TodoDS:read-resource
+    data-source remove --name=TodoDS
+end-if
+
+# 2. TodoDS Datasource 강제 생성
+# 핵심: --driver-name=postgresql (아래 환경변수 설정으로 로딩될 드라이버를 사용)
+# 핵심: ${env.VAR} 구문을 사용하여 런타임 환경 변수를 참조하도록 설정
+data-source add \
+    --name=TodoDS \
+    --jndi-name=java:jboss/datasources/TodoDS \
+    --driver-name=postgresql \
+    --connection-url=jdbc:postgresql://${env.POSTGRESQL_SERVICE_HOST:postgresql}:${env.POSTGRESQL_SERVICE_PORT:5432}/${env.POSTGRESQL_DATABASE:tododb} \
+    --user-name=${env.POSTGRESQL_USERNAME:todo} \
+    --password=${env.POSTGRESQL_PASSWORD:password} \
+    --use-java-context=true \
+    --check-valid-connection-sql="SELECT 1" \
+    --background-validation=true \
+    --valid-connection-checker-class-name=org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker \
+    --exception-sorter-class-name=org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter \
+    --enabled=true
+
+run-batch
