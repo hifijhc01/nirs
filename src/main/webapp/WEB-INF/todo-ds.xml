@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<datasources xmlns="http://www.jboss.org/ironjacamar/schema">
+    <!-- 
+       이 파일은 EAP가 기동될 때 자동으로 읽힙니다.
+       환경 변수 스크립트를 거치지 않고 직접 DB를 연결하므로 오류가 없습니다.
+    -->
+    <datasource jndi-name="java:jboss/datasources/TodoDS" pool-name="TodoDS" enabled="true" use-java-context="true">
+        <!-- 환경 변수 치환 -->
+        <connection-url>jdbc:postgresql://${env.POSTGRESQL_SERVICE_HOST:postgresql}:${env.POSTGRESQL_SERVICE_PORT:5432}/${env.POSTGRESQL_DATABASE:tododb}</connection-url>
+        
+        <!-- Galleon이 설치해둔 드라이버 이름 'postgresql' 사용 -->
+        <driver>postgresql</driver>
+        
+        <security>
+            <user-name>${env.POSTGRESQL_USERNAME:todo}</user-name>
+            <password>${env.POSTGRESQL_PASSWORD:password}</password>
+        </security>
+        
+        <validation>
+            <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker"/>
+            <validate-on-match>true</validate-on-match>
+            <background-validation>false</background-validation>
+            <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter"/>
+        </validation>
+    </datasource>
+</datasources>
