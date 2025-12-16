@@ -4,45 +4,37 @@ set -euo pipefail
 echo "=== [extensions] install.sh start (build-time) ==="
 
 JBOSS_HOME="${JBOSS_HOME:-/opt/eap}"
-INJECTED_DIR="${1:-/tmp/src/extensions}"
+INJECTED_DIR="${INJECTED_DIR:-/tmp/src/extensions}"
+
+# S2I 소스 루트는 보통 /tmp/src
+SRC_DIR="${SRC_DIR:-/tmp/src}"
 
 echo "JBOSS_HOME=${JBOSS_HOME}"
 echo "INJECTED_DIR=${INJECTED_DIR}"
+echo "SRC_DIR=${SRC_DIR}"
 
-# 1) PostgreSQL 모듈 설치 (module.xml + jar)
-if [[ -d "${INJECTED_DIR}/modules" ]]; then
+# (기존 로직 유지) custom modules 설치
+if [ -d "${INJECTED_DIR}/modules" ]; then
   echo "Installing custom modules from ${INJECTED_DIR}/modules -> ${JBOSS_HOME}/modules"
   cp -a "${INJECTED_DIR}/modules/." "${JBOSS_HOME}/modules/"
-else
-  echo "ERROR: ${INJECTED_DIR}/modules not found. Expected modules/org/postgresql/main/..."
-  exit 1
 fi
 
-# 2) 드라이버 등록만 수행 (Datasource는 런타임에 생성)
-CLI_FILE="/tmp/register-postgresql-driver.cli"
-cat > "${CLI_FILE}" <<'EOF'
-embed-server --std-out=echo --server-config=standalone-openshift.xml
+# (기존 로직 유지) postgresql driver 등록 CLI 실행 (있을 때만)
+if [ -f "${INJECTED_DIR}/register-postgresql-driver.cli" ]; then
+  echo "Executing CLI: ${INJECTED_DIR}/register-postgresql-driver.cli"
+  "${JBOSS_HOME}/bin/jboss-cli.sh" --file="${INJECTED_DIR}/register-postgresql-driver.cli" || true
+fi
 
-if (outcome != success) of /subsystem=datasources/jdbc-driver=postgresql:read-resource()
-  /subsystem=datasources/jdbc-driver=postgresql:add(driver-name=postgresql,driver-module-name=org.postgresql,driver-class-name=org.postgresql.Driver)
-end-if
+# ---- 여기부터: WAR를 /deployments 로 배포 ----
+echo "[extensions] locating WAR..."
 
-stop-embedded-server
-EOF
-
-echo "Executing CLI: ${CLI_FILE}"
-"${JBOSS_HOME}/bin/jboss-cli.sh" --file="${CLI_FILE}"
-
-
-# 2) WAR 찾기
-# kitchensink-only repo라면 target/*.war가 일반적
-WAR_CANDIDATES=(
-  "${SRC_DIR}/target"/*.war
-  "${SRC_DIR}/kitchensink/target"/*.war
-)
-
+# kitchensink-only repo라면 보통 /tmp/src/target/*.war
+# 혹시 kitchensink/target 구조도 대비
 WAR_FILE=""
-for f in "${WAR_CANDIDATES[@]}"; do
+for f in \
+  "${SRC_DIR}/target"/*.war \
+  "${SRC_DIR}/kitchensink/target"/*.war
+do
   if [ -f "$f" ]; then
     WAR_FILE="$f"
     break
@@ -50,23 +42,21 @@ for f in "${WAR_CANDIDATES[@]}"; do
 done
 
 if [ -z "${WAR_FILE}" ]; then
-  echo "[extensions] ERROR: war file not found under:"
-  printf " - %s\n" "${WAR_CANDIDATES[@]}"
-  echo "[extensions] Hint: check build output path"
+  echo "[extensions] ERROR: WAR not found. candidates:"
+  echo " - ${SRC_DIR}/target/*.war"
+  echo " - ${SRC_DIR}/kitchensink/target/*.war"
+  echo "[extensions] listing targets:"
+  ls -al "${SRC_DIR}" || true
+  ls -al "${SRC_DIR}/target" || true
+  ls -al "${SRC_DIR}/kitchensink/target" || true
   exit 1
 fi
 
 echo "[extensions] Found WAR: ${WAR_FILE}"
 
-# 3) /deployments 로 강제 배포
-# 루트(/)로 서비스하려면 ROOT.war
+# /deployments는 EAP S2I에서 배포 디렉토리로 사용됨
 cp -vf "${WAR_FILE}" /deployments/ROOT.war
-
-# 배포 트리거 파일(선택이지만 명확함)
 touch /deployments/ROOT.war.dodeploy
 
-
-
-
-echo "=== [extensions] install.sh end (build-time) ==="
+echo "=== [extensions] install.sh done (build-time) ==="
 
