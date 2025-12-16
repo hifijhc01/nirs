@@ -1,0 +1,29 @@
+embed-server --std-out=echo --server-config=standalone-openshift.xml
+
+# PostgreSQL Driver 등록 (이미 되어있어도 안전)
+/subsystem=datasources/jdbc-driver=postgresql:add( \
+  driver-name=postgresql, \
+  driver-module-name=org.postgresql, \
+  driver-class-name=org.postgresql.Driver \
+)
+
+# Datasource 생성
+# JNDI는 kitchensink가 기본으로 많이 쓰는 java:jboss/datasources/KitchensinkDS 로 지정
+data-source add \
+  --name=KitchensinkDS \
+  --jndi-name=java:jboss/datasources/KitchensinkDS \
+  --driver-name=postgresql \
+  --connection-url=${POSTGRESQL_URL} \
+  --user-name=${POSTGRESQL_USER} \
+  --password=${POSTGRESQL_PASSWORD} \
+  --min-pool-size=5 \
+  --max-pool-size=20 \
+  --check-valid-connection-sql="SELECT 1" \
+  --background-validation=true \
+  --background-validation-millis=60000
+
+# 부팅 시 커넥션 체크
+/subsystem=datasources/data-source=KitchensinkDS:test-connection-in-pool
+
+stop-embedded-server
+
